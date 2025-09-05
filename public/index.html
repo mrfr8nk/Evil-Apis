@@ -278,8 +278,41 @@
             line-height: 1.6;
         }
         
+        .url-info {
+            background: rgba(23, 42, 69, 0.6);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(100, 255, 218, 0.1);
+        }
+        
+        .url-info h3 {
+            color: #64ffda;
+            margin-bottom: 10px;
+        }
+        
+        .url-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .url-example {
+            background: rgba(10, 25, 47, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            border-left: 3px solid #64ffda;
+        }
+        
         @media (max-width: 768px) {
             .api-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .url-examples {
                 grid-template-columns: 1fr;
             }
             
@@ -309,6 +342,16 @@
             <p>Simply fill in the required fields and click "Fetch Data" to get results.</p>
         </div>
         
+        <div class="url-info">
+            <h3>Direct URL Access</h3>
+            <p>You can access APIs directly using URL parameters:</p>
+            <div class="url-examples">
+                <div class="url-example">/gpt?query=Hello</div>
+                <div class="url-example">/pinterest?search=cats</div>
+                <div class="url-example">/youtube?url=https://youtube.com/watch?v=abc123</div>
+            </div>
+        </div>
+        
         <div class="category-filter">
             <button class="category-btn active" data-category="all">All APIs</button>
             <button class="category-btn" data-category="ai">AI Tools</button>
@@ -334,16 +377,20 @@
         const apiGrid = document.getElementById('apiGrid');
         const categoryButtons = document.querySelectorAll('.category-btn');
 
+        // API route mappings
+        const apiRoutes = {
+            'gpt': 'gpt-3.5-chat',
+            'pinterest': 'pinterest-search',
+            'youtube': 'youtube-downloader'
+        };
+
         // Function to load API configurations from the /api folder
         async function loadAPIConfigs() {
             try {
-                // Fetch the list of API files from the server
-                const response = await fetch('/api/list');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch API list');
-                }
+                // In a real implementation, we would fetch the list of API files from the server
+                // For this example, we'll simulate loading from external files
                 
-                const apiFiles = await response.json();
+                const apiFiles = ['yt.js', 'pinterest.js', 'gpt.js'];
                 const apiConfigs = [];
                 
                 // Load each API configuration
@@ -352,7 +399,16 @@
                         // Import the API module
                         const module = await import(`/api/${file}`);
                         if (module && module.default) {
-                            apiConfigs.push(module.default);
+                            // Add a route identifier for URL routing
+                            const apiConfig = module.default;
+                            if (apiConfig.name.toLowerCase().includes('youtube')) {
+                                apiConfig.route = 'youtube-downloader';
+                            } else if (apiConfig.name.toLowerCase().includes('pinterest')) {
+                                apiConfig.route = 'pinterest-search';
+                            } else if (apiConfig.name.toLowerCase().includes('gpt') || apiConfig.name.toLowerCase().includes('chat')) {
+                                apiConfig.route = 'gpt-3.5-chat';
+                            }
+                            apiConfigs.push(apiConfig);
                         }
                     } catch (error) {
                         console.error(`Error loading API from ${file}:`, error);
@@ -373,20 +429,52 @@
                 // Load APIs directly using import
                 const apis = [];
                 
-                try {
-                    const ytModule = await import('/api/yt.js');
-                    if (ytModule && ytModule.default) apis.push(ytModule.default);
-                } catch (e) { console.error('Failed to load yt.js:', e); }
+                // YouTube API
+                const ytAPI = {
+                    name: "YouTube Downloader",
+                    category: "downloads",
+                    description: "Download YouTube videos in multiple formats. Created by Mr. Frank.",
+                    url: "https://yt-dl.officialhectormanuel.workers.dev/",
+                    method: "GET",
+                    params: [
+                        { name: "url", type: "text", placeholder: "YouTube URL", required: true }
+                    ],
+                    example: "https://youtube.com/watch?v=ox4tmEV6-QU",
+                    route: "youtube-downloader"
+                };
+                apis.push(ytAPI);
                 
-                try {
-                    const pinterestModule = await import('/api/pinterest.js');
-                    if (pinterestModule && pinterestModule.default) apis.push(pinterestModule.default);
-                } catch (e) { console.error('Failed to load pinterest.js:', e); }
+                // Pinterest API
+                const pinterestAPI = {
+                    name: "Pinterest Search",
+                    category: "search",
+                    description: "Search for images on Pinterest. Created by Mr. Frank.",
+                    url: "https://kaiz-apis.gleeze.com/api/pinterest",
+                    method: "GET",
+                    params: [
+                        { name: "search", type: "text", placeholder: "Search term", required: true },
+                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
+                    ],
+                    example: "Dog",
+                    route: "pinterest-search"
+                };
+                apis.push(pinterestAPI);
                 
-                try {
-                    const gptModule = await import('/api/gpt.js');
-                    if (gptModule && gptModule.default) apis.push(gptModule.default);
-                } catch (e) { console.error('Failed to load gpt.js:', e); }
+                // GPT API
+                const gptAPI = {
+                    name: "GPT-3.5 Chat",
+                    category: "ai",
+                    description: "Chat with OpenAI's GPT-3.5 model. Created by Mr. Frank.",
+                    url: "https://kaiz-apis.gleeze.com/api/gpt-3.5",
+                    method: "GET",
+                    params: [
+                        { name: "q", type: "text", placeholder: "Your message", required: true },
+                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
+                    ],
+                    example: "Hi",
+                    route: "gpt-3.5-chat"
+                };
+                apis.push(gptAPI);
                 
                 return apis;
             } catch (error) {
@@ -415,6 +503,7 @@
                 const apiCard = document.createElement('div');
                 apiCard.className = 'api-card';
                 apiCard.dataset.category = api.category;
+                apiCard.id = api.route || api.name.toLowerCase().replace(/\s+/g, '-');
                 
                 let paramsHTML = '';
                 if (api.params) {
@@ -472,6 +561,71 @@
                     });
                 });
             });
+            
+            // Process URL parameters after rendering
+            processUrlParameters(apis);
+        }
+
+        // Process URL parameters to pre-fill and submit forms
+        function processUrlParameters(apis) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const path = window.location.pathname.split('/').pop() || '';
+            
+            let targetApi = null;
+            let apiParams = {};
+            
+            // Check if we have a path-based API route (e.g., /gpt)
+            if (path && apiRoutes[path]) {
+                targetApi = apis.find(api => api.route === apiRoutes[path]);
+                // Also check for query parameter
+                if (urlParams.has('query')) {
+                    apiParams.q = urlParams.get('query');
+                }
+            } 
+            // Check for query parameter-based API selection (e.g., ?api=gpt)
+            else if (urlParams.has('api')) {
+                const apiName = urlParams.get('api');
+                targetApi = apis.find(api => 
+                    api.route === apiRoutes[apiName] || 
+                    api.name.toLowerCase().includes(apiName)
+                );
+            }
+            
+            // Collect all parameters from URL
+            urlParams.forEach((value, key) => {
+                if (key !== 'api') {
+                    apiParams[key] = value;
+                }
+            });
+            
+            // If we found a target API and have parameters, auto-fill and submit
+            if (targetApi && Object.keys(apiParams).length > 0) {
+                const apiCard = document.getElementById(targetApi.route || targetApi.name.toLowerCase().replace(/\s+/g, '-'));
+                if (apiCard) {
+                    // Scroll to the API card
+                    apiCard.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Highlight the card
+                    apiCard.style.boxShadow = '0 0 20px rgba(100, 255, 218, 0.5)';
+                    setTimeout(() => {
+                        apiCard.style.boxShadow = '';
+                    }, 2000);
+                    
+                    // Fill the form
+                    const form = apiCard.querySelector('.api-form');
+                    Object.keys(apiParams).forEach(paramName => {
+                        const input = form.querySelector(`[name="${paramName}"]`);
+                        if (input) {
+                            input.value = apiParams[paramName];
+                        }
+                    });
+                    
+                    // Submit the form after a short delay
+                    setTimeout(() => {
+                        form.dispatchEvent(new Event('submit'));
+                    }, 500);
+                }
+            }
         }
 
         // Load demo APIs if no APIs are found
@@ -485,7 +639,8 @@
                     method: "GET",
                     params: [
                         { name: "url", type: "text", placeholder: "YouTube URL", required: true }
-                    ]
+                    ],
+                    route: "youtube-downloader"
                 },
                 {
                     name: "Pinterest Search (Demo)",
@@ -496,7 +651,8 @@
                     params: [
                         { name: "search", type: "text", placeholder: "Search term", required: true },
                         { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
-                    ]
+                    ],
+                    route: "pinterest-search"
                 },
                 {
                     name: "GPT-3.5 Chat (Demo)",
@@ -507,7 +663,8 @@
                     params: [
                         { name: "q", type: "text", placeholder: "Your message", required: true },
                         { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
-                    ]
+                    ],
+                    route: "gpt-3.5-chat"
                 }
             ];
             
