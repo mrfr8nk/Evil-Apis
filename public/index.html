@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Scraper Hub</title>
+    <title>Dynamic API Scraper Hub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -307,6 +307,31 @@
             border-left: 3px solid #64ffda;
         }
         
+        .api-management {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn {
+            background: rgba(100, 255, 218, 0.15);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            padding: 10px 20px;
+            border-radius: 6px;
+            color: #64ffda;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: rgba(100, 255, 218, 0.25);
+            transform: translateY(-2px);
+        }
+        
         @media (max-width: 768px) {
             .api-grid {
                 grid-template-columns: 1fr;
@@ -324,13 +349,19 @@
                 padding: 10px 18px;
                 font-size: 0.9rem;
             }
+            
+            .api-management {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>API Scraper Hub</h1>
-        <p class="subtitle">Dynamic API scraping tools - All in one place</p>
+        <h1>Dynamic API Scraper Hub</h1>
+        <p class="subtitle">Automatically loads API scrapers from the /api folder</p>
         <p class="creator">Created by Mr. Frank</p>
     </header>
     
@@ -338,26 +369,31 @@
         <div class="instructions">
             <h2>How It Works</h2>
             <p>This website dynamically loads API scraping scripts from the <code>/api</code> folder.</p>
-            <p>Each API is categorized and displayed in a card with its required parameters.</p>
-            <p>Simply fill in the required fields and click "Fetch Data" to get results.</p>
+            <p>Just add JavaScript files to the api folder with the proper structure, and they will be automatically loaded.</p>
         </div>
         
         <div class="url-info">
-            <h3>Direct URL Access</h3>
-            <p>You can access APIs directly using URL parameters:</p>
+            <h3>Direct API Access</h3>
+            <p>You can access APIs directly using these routes:</p>
             <div class="url-examples">
-                <div class="url-example">/gpt?query=Hello</div>
-                <div class="url-example">/pinterest?search=cats</div>
-                <div class="url-example">/youtube?url=https://youtube.com/watch?v=abc123</div>
+                <div class="url-example">/api/gpt?query=Hello</div>
+                <div class="url-example">/api/pinterest?search=cats</div>
+                <div class="url-example">/api/youtube?url=https://youtube.com/...</div>
             </div>
         </div>
         
-        <div class="category-filter">
-            <button class="category-btn active" data-category="all">All APIs</button>
-            <button class="category-btn" data-category="ai">AI Tools</button>
-            <button class="category-btn" data-category="downloads">Downloads</button>
-            <button class="category-btn" data-category="search">Search</button>
-            <button class="category-btn" data-category="media">Media</button>
+        <div class="api-management">
+            <div class="category-filter">
+                <button class="category-btn active" data-category="all">All APIs</button>
+                <button class="category-btn" data-category="ai">AI Tools</button>
+                <button class="category-btn" data-category="downloads">Downloads</button>
+                <button class="category-btn" data-category="search">Search</button>
+                <button class="category-btn" data-category="media">Media</button>
+            </div>
+            
+            <button class="refresh-btn" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i> Reload APIs
+            </button>
         </div>
         
         <div class="api-grid" id="apiGrid">
@@ -369,116 +405,86 @@
     </div>
     
     <footer>
-        <p>API Scraper Hub &copy; 2023 | Created by Mr. Frank</p>
+        <p>Dynamic API Scraper Hub &copy; 2023 | Created by Mr. Frank</p>
     </footer>
 
     <script>
         // DOM elements
         const apiGrid = document.getElementById('apiGrid');
         const categoryButtons = document.querySelectorAll('.category-btn');
-
-        // API route mappings
-        const apiRoutes = {
-            'gpt': 'gpt-3.5-chat',
-            'pinterest': 'pinterest-search',
-            'youtube': 'youtube-downloader'
-        };
+        const refreshBtn = document.getElementById('refreshBtn');
 
         // Function to load API configurations from the /api folder
         async function loadAPIConfigs() {
             try {
-                // In a real implementation, we would fetch the list of API files from the server
-                // For this example, we'll simulate loading from external files
+                // First try to get the list of API files from the server
+                const response = await fetch('/api/list');
+                if (!response.ok) {
+                    throw new Error('API list endpoint not available');
+                }
                 
-                const apiFiles = ['yt.js', 'pinterest.js', 'gpt.js'];
+                const apiFiles = await response.json();
                 const apiConfigs = [];
                 
                 // Load each API configuration
                 for (const file of apiFiles) {
                     try {
-                        // Import the API module
+                        // Try to load the API module
                         const module = await import(`/api/${file}`);
                         if (module && module.default) {
-                            // Add a route identifier for URL routing
-                            const apiConfig = module.default;
-                            if (apiConfig.name.toLowerCase().includes('youtube')) {
-                                apiConfig.route = 'youtube-downloader';
-                            } else if (apiConfig.name.toLowerCase().includes('pinterest')) {
-                                apiConfig.route = 'pinterest-search';
-                            } else if (apiConfig.name.toLowerCase().includes('gpt') || apiConfig.name.toLowerCase().includes('chat')) {
-                                apiConfig.route = 'gpt-3.5-chat';
-                            }
-                            apiConfigs.push(apiConfig);
+                            apiConfigs.push(module.default);
                         }
                     } catch (error) {
                         console.error(`Error loading API from ${file}:`, error);
+                        
+                        // If dynamic import fails, try to fetch as JSON
+                        try {
+                            const apiResponse = await fetch(`/api/${file.replace('.js', '')}/config`);
+                            if (apiResponse.ok) {
+                                const config = await apiResponse.json();
+                                apiConfigs.push(config);
+                            }
+                        } catch (e) {
+                            console.error(`Also failed to load config for ${file}:`, e);
+                        }
                     }
                 }
                 
                 return apiConfigs;
             } catch (error) {
                 console.error("Error loading API configurations:", error);
-                // Fallback to hardcoded APIs if server endpoint is not available
-                return loadFallbackAPIs();
+                // Fallback to trying to load known APIs directly
+                return loadKnownAPIs();
             }
         }
 
-        // Fallback function if server endpoint is not available
-        async function loadFallbackAPIs() {
+        // Fallback function to load known APIs
+        async function loadKnownAPIs() {
             try {
-                // Load APIs directly using import
                 const apis = [];
                 
-                // YouTube API
-                const ytAPI = {
-                    name: "YouTube Downloader",
-                    category: "downloads",
-                    description: "Download YouTube videos in multiple formats. Created by Mr. Frank.",
-                    url: "https://yt-dl.officialhectormanuel.workers.dev/",
-                    method: "GET",
-                    params: [
-                        { name: "url", type: "text", placeholder: "YouTube URL", required: true }
-                    ],
-                    example: "https://youtube.com/watch?v=ox4tmEV6-QU",
-                    route: "youtube-downloader"
-                };
-                apis.push(ytAPI);
+                // Try to load each known API
+                const knownApis = [
+                    { name: 'gpt', path: '/api/gpt/config' },
+                    { name: 'pinterest', path: '/api/pinterest/config' },
+                    { name: 'youtube', path: '/api/youtube/config' }
+                ];
                 
-                // Pinterest API
-                const pinterestAPI = {
-                    name: "Pinterest Search",
-                    category: "search",
-                    description: "Search for images on Pinterest. Created by Mr. Frank.",
-                    url: "https://kaiz-apis.gleeze.com/api/pinterest",
-                    method: "GET",
-                    params: [
-                        { name: "search", type: "text", placeholder: "Search term", required: true },
-                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
-                    ],
-                    example: "Dog",
-                    route: "pinterest-search"
-                };
-                apis.push(pinterestAPI);
-                
-                // GPT API
-                const gptAPI = {
-                    name: "GPT-3.5 Chat",
-                    category: "ai",
-                    description: "Chat with OpenAI's GPT-3.5 model. Created by Mr. Frank.",
-                    url: "https://kaiz-apis.gleeze.com/api/gpt-3.5",
-                    method: "GET",
-                    params: [
-                        { name: "q", type: "text", placeholder: "Your message", required: true },
-                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
-                    ],
-                    example: "Hi",
-                    route: "gpt-3.5-chat"
-                };
-                apis.push(gptAPI);
+                for (const api of knownApis) {
+                    try {
+                        const response = await fetch(api.path);
+                        if (response.ok) {
+                            const config = await response.json();
+                            apis.push(config);
+                        }
+                    } catch (error) {
+                        console.error(`Error loading ${api.name} config:`, error);
+                    }
+                }
                 
                 return apis;
             } catch (error) {
-                console.error("Error loading fallback APIs:", error);
+                console.error("Error loading known APIs:", error);
                 return [];
             }
         }
@@ -488,12 +494,10 @@
             if (apis.length === 0) {
                 apiGrid.innerHTML = `
                     <div class="loading">
-                        <p>No APIs found. Please check the /api folder.</p>
-                        <p>Using demo APIs instead.</p>
+                        <p>No APIs found in /api folder.</p>
+                        <p>Please add API files to the /api directory.</p>
                     </div>
                 `;
-                // Load demo APIs as a last resort
-                loadDemoAPIs();
                 return;
             }
             
@@ -503,7 +507,7 @@
                 const apiCard = document.createElement('div');
                 apiCard.className = 'api-card';
                 apiCard.dataset.category = api.category;
-                apiCard.id = api.route || api.name.toLowerCase().replace(/\s+/g, '-');
+                apiCard.id = api.name.toLowerCase().replace(/\s+/g, '-');
                 
                 let paramsHTML = '';
                 if (api.params) {
@@ -569,106 +573,45 @@
         // Process URL parameters to pre-fill and submit forms
         function processUrlParameters(apis) {
             const urlParams = new URLSearchParams(window.location.search);
-            const path = window.location.pathname.split('/').pop() || '';
             
-            let targetApi = null;
-            let apiParams = {};
-            
-            // Check if we have a path-based API route (e.g., /gpt)
-            if (path && apiRoutes[path]) {
-                targetApi = apis.find(api => api.route === apiRoutes[path]);
-                // Also check for query parameter
-                if (urlParams.has('query')) {
-                    apiParams.q = urlParams.get('query');
-                }
-            } 
-            // Check for query parameter-based API selection (e.g., ?api=gpt)
-            else if (urlParams.has('api')) {
-                const apiName = urlParams.get('api');
-                targetApi = apis.find(api => 
-                    api.route === apiRoutes[apiName] || 
-                    api.name.toLowerCase().includes(apiName)
+            // Check for API parameter
+            if (urlParams.has('api')) {
+                const apiName = urlParams.get('api').toLowerCase();
+                const targetApi = apis.find(api => 
+                    api.name.toLowerCase().includes(apiName) || 
+                    (api.route && api.route.toLowerCase() === apiName)
                 );
-            }
-            
-            // Collect all parameters from URL
-            urlParams.forEach((value, key) => {
-                if (key !== 'api') {
-                    apiParams[key] = value;
-                }
-            });
-            
-            // If we found a target API and have parameters, auto-fill and submit
-            if (targetApi && Object.keys(apiParams).length > 0) {
-                const apiCard = document.getElementById(targetApi.route || targetApi.name.toLowerCase().replace(/\s+/g, '-'));
-                if (apiCard) {
-                    // Scroll to the API card
-                    apiCard.scrollIntoView({ behavior: 'smooth' });
-                    
-                    // Highlight the card
-                    apiCard.style.boxShadow = '0 0 20px rgba(100, 255, 218, 0.5)';
-                    setTimeout(() => {
-                        apiCard.style.boxShadow = '';
-                    }, 2000);
-                    
-                    // Fill the form
-                    const form = apiCard.querySelector('.api-form');
-                    Object.keys(apiParams).forEach(paramName => {
-                        const input = form.querySelector(`[name="${paramName}"]`);
-                        if (input) {
-                            input.value = apiParams[paramName];
-                        }
-                    });
-                    
-                    // Submit the form after a short delay
-                    setTimeout(() => {
-                        form.dispatchEvent(new Event('submit'));
-                    }, 500);
+                
+                if (targetApi) {
+                    const apiCard = document.getElementById(targetApi.name.toLowerCase().replace(/\s+/g, '-'));
+                    if (apiCard) {
+                        // Scroll to the API card
+                        apiCard.scrollIntoView({ behavior: 'smooth' });
+                        
+                        // Highlight the card
+                        apiCard.style.boxShadow = '0 0 20px rgba(100, 255, 218, 0.5)';
+                        setTimeout(() => {
+                            apiCard.style.boxShadow = '';
+                        }, 2000);
+                        
+                        // Fill the form with all available parameters
+                        const form = apiCard.querySelector('.api-form');
+                        urlParams.forEach((value, key) => {
+                            if (key !== 'api') {
+                                const input = form.querySelector(`[name="${key}"]`);
+                                if (input) {
+                                    input.value = value;
+                                }
+                            }
+                        });
+                        
+                        // Submit the form after a short delay
+                        setTimeout(() => {
+                            form.dispatchEvent(new Event('submit'));
+                        }, 500);
+                    }
                 }
             }
-        }
-
-        // Load demo APIs if no APIs are found
-        function loadDemoAPIs() {
-            const demoAPIs = [
-                {
-                    name: "YouTube Downloader (Demo)",
-                    category: "downloads",
-                    description: "Download YouTube videos in multiple formats. Created by Mr. Frank.",
-                    url: "https://yt-dl.officialhectormanuel.workers.dev/",
-                    method: "GET",
-                    params: [
-                        { name: "url", type: "text", placeholder: "YouTube URL", required: true }
-                    ],
-                    route: "youtube-downloader"
-                },
-                {
-                    name: "Pinterest Search (Demo)",
-                    category: "search",
-                    description: "Search for images on Pinterest. Created by Mr. Frank.",
-                    url: "https://kaiz-apis.gleeze.com/api/pinterest",
-                    method: "GET",
-                    params: [
-                        { name: "search", type: "text", placeholder: "Search term", required: true },
-                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
-                    ],
-                    route: "pinterest-search"
-                },
-                {
-                    name: "GPT-3.5 Chat (Demo)",
-                    category: "ai",
-                    description: "Chat with OpenAI's GPT-3.5 model. Created by Mr. Frank.",
-                    url: "https://kaiz-apis.gleeze.com/api/gpt-3.5",
-                    method: "GET",
-                    params: [
-                        { name: "q", type: "text", placeholder: "Your message", required: true },
-                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
-                    ],
-                    route: "gpt-3.5-chat"
-                }
-            ];
-            
-            renderApiCards(demoAPIs);
         }
 
         // Fetch data from API
@@ -685,44 +628,25 @@
             resultContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>Fetching data...</p></div>';
             
             try {
-                // Build URL with parameters
+                // Build the API URL
+                const apiUrl = `/api/${apiConfig.name.toLowerCase().replace(/\s+/g, '-')}`;
+                
+                // Build query parameters
                 const formData = new FormData(form);
-                let url = apiConfig.url;
+                const params = new URLSearchParams();
                 
-                // For GET requests, add parameters to URL
-                if (apiConfig.method === 'GET') {
-                    const urlObj = new URL(url);
-                    for (let [key, value] of formData.entries()) {
-                        urlObj.searchParams.append(key, value);
-                    }
-                    url = urlObj.toString();
-                }
-                
-                // Prepare request options
-                const requestOptions = {
-                    method: apiConfig.method,
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                };
-                
-                // For POST requests, add form data to body
-                if (apiConfig.method === 'POST') {
-                    requestOptions.body = formData;
+                for (let [key, value] of formData.entries()) {
+                    params.append(key, value);
                 }
                 
                 // Make the API request
-                const response = await fetch(url, requestOptions);
+                const response = await fetch(`${apiUrl}?${params.toString()}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                
-                // Modify the response to set creator to "Mr. Frank"
-                if (data.creator) data.creator = "Mr. Frank";
-                if (data.author) data.author = "Mr. Frank";
                 
                 // Format and display the JSON response
                 resultContent.textContent = JSON.stringify(data, null, 2);
@@ -764,6 +688,13 @@
             });
         });
 
+        // Set up refresh button
+        refreshBtn.addEventListener('click', async function() {
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reloading...';
+            await init();
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Reload APIs';
+        });
+
         // Initialize the page
         async function init() {
             try {
@@ -773,10 +704,9 @@
                 console.error("Failed to initialize application:", error);
                 apiGrid.innerHTML = `
                     <div class="loading">
-                        <p>Error loading APIs. Using demo APIs instead.</p>
+                        <p>Error loading APIs. Please check your server configuration.</p>
                     </div>
                 `;
-                loadDemoAPIs();
             }
         }
 
