@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Scraper Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a192f 0%, #112240 50%, #0a192f 100%);
+            color: #e6f1ff;
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+        
+        header {
+            background: rgba(10, 25, 47, 0.8);
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #64ffda, #00a3ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(100, 255, 218, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            color: #ccd6f6;
+        }
+        
+        .creator {
+            font-size: 1rem;
+            color: #64ffda;
+            margin-top: 5px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .category-filter {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 25px 0;
+        }
+        
+        .category-btn {
+            background: rgba(23, 42, 69, 0.7);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            padding: 12px 24px;
+            border-radius: 30px;
+            color: #ccd6f6;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            font-weight: 500;
+        }
+        
+        .category-btn:hover {
+            background: rgba(100, 255, 218, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.2);
+        }
+        
+        .category-btn.active {
+            background: rgba(100, 255, 218, 0.15);
+            color: #64ffda;
+            border-color: #64ffda;
+            font-weight: bold;
+        }
+        
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .api-card {
+            background: rgba(23, 42, 69, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(100, 255, 218, 0.1);
+        }
+        
+        .api-card:hover {
+            transform: translateY(-8px);
+            background: rgba(23, 42, 69, 0.7);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(100, 255, 218, 0.3);
+        }
+        
+        .api-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+        }
+        
+        .api-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #64ffda;
+        }
+        
+        .api-category {
+            background: rgba(100, 255, 218, 0.15);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #64ffda;
+        }
+        
+        .api-description {
+            margin-bottom: 20px;
+            line-height: 1.6;
+            color: #a8b2d1;
+        }
+        
+        .api-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: rgba(10, 25, 47, 0.6);
+            color: #e6f1ff;
+            font-size: 1rem;
+        }
+        
+        .api-input:focus {
+            outline: none;
+            border-color: #64ffda;
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
+        }
+        
+        .api-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #64ffda, #00a3ff);
+            color: #0a192f;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .api-submit:hover {
+            background: linear-gradient(90deg, #00a3ff, #64ffda);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.4);
+        }
+        
+        .result-container {
+            margin-top: 25px;
+            background: rgba(10, 25, 47, 0.6);
+            border-radius: 10px;
+            padding: 18px;
+            position: relative;
+            border: 1px solid rgba(100, 255, 218, 0.1);
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .result-header span {
+            font-weight: bold;
+            color: #64ffda;
+        }
+        
+        .copy-btn {
+            background: rgba(100, 255, 218, 0.15);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: #64ffda;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(100, 255, 218, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        .result-content {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(10, 25, 47, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #a8b2d1;
+            border: 1px solid rgba(100, 255, 218, 0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 25px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(100, 255, 218, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid #64ffda;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 25px;
+            background: rgba(10, 25, 47, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(100, 255, 218, 0.2);
+        }
+        
+        .instructions {
+            background: rgba(23, 42, 69, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            border: 1px solid rgba(100, 255, 218, 0.1);
+        }
+        
+        .instructions h2 {
+            color: #64ffda;
+            margin-bottom: 15px;
+        }
+        
+        .instructions p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .api-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .category-btn {
+                padding: 10px 18px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>API Scraper Hub</h1>
+        <p class="subtitle">Dynamic API scraping tools - All in one place</p>
+        <p class="creator">Created by Mr. Frank</p>
+    </header>
+    
+    <div class="container">
+        <div class="instructions">
+            <h2>How It Works</h2>
+            <p>This website dynamically loads API scraping scripts from the <code>/api</code> folder.</p>
+            <p>Each API is categorized and displayed in a card with its required parameters.</p>
+            <p>Simply fill in the required fields and click "Fetch Data" to get results.</p>
+        </div>
+        
+        <div class="category-filter">
+            <button class="category-btn active" data-category="all">All APIs</button>
+            <button class="category-btn" data-category="ai">AI Tools</button>
+            <button class="category-btn" data-category="downloads">Downloads</button>
+            <button class="category-btn" data-category="search">Search</button>
+            <button class="category-btn" data-category="media">Media</button>
+        </div>
+        
+        <div class="api-grid" id="apiGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading APIs from /api folder...</p>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>API Scraper Hub &copy; 2023 | Created by Mr. Frank</p>
+    </footer>
+
+    <script>
+        // DOM elements
+        const apiGrid = document.getElementById('apiGrid');
+        const categoryButtons = document.querySelectorAll('.category-btn');
+
+        // Function to load API configurations from the /api folder
+        async function loadAPIConfigs() {
+            try {
+                // Fetch the list of API files from the server
+                const response = await fetch('/api/list');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch API list');
+                }
+                
+                const apiFiles = await response.json();
+                const apiConfigs = [];
+                
+                // Load each API configuration
+                for (const file of apiFiles) {
+                    try {
+                        // Import the API module
+                        const module = await import(`/api/${file}`);
+                        if (module && module.default) {
+                            apiConfigs.push(module.default);
+                        }
+                    } catch (error) {
+                        console.error(`Error loading API from ${file}:`, error);
+                    }
+                }
+                
+                return apiConfigs;
+            } catch (error) {
+                console.error("Error loading API configurations:", error);
+                // Fallback to hardcoded APIs if server endpoint is not available
+                return loadFallbackAPIs();
+            }
+        }
+
+        // Fallback function if server endpoint is not available
+        async function loadFallbackAPIs() {
+            try {
+                // Load APIs directly using import
+                const apis = [];
+                
+                try {
+                    const ytModule = await import('/api/yt.js');
+                    if (ytModule && ytModule.default) apis.push(ytModule.default);
+                } catch (e) { console.error('Failed to load yt.js:', e); }
+                
+                try {
+                    const pinterestModule = await import('/api/pinterest.js');
+                    if (pinterestModule && pinterestModule.default) apis.push(pinterestModule.default);
+                } catch (e) { console.error('Failed to load pinterest.js:', e); }
+                
+                try {
+                    const gptModule = await import('/api/gpt.js');
+                    if (gptModule && gptModule.default) apis.push(gptModule.default);
+                } catch (e) { console.error('Failed to load gpt.js:', e); }
+                
+                return apis;
+            } catch (error) {
+                console.error("Error loading fallback APIs:", error);
+                return [];
+            }
+        }
+
+        // Render API cards
+        function renderApiCards(apis) {
+            if (apis.length === 0) {
+                apiGrid.innerHTML = `
+                    <div class="loading">
+                        <p>No APIs found. Please check the /api folder.</p>
+                        <p>Using demo APIs instead.</p>
+                    </div>
+                `;
+                // Load demo APIs as a last resort
+                loadDemoAPIs();
+                return;
+            }
+            
+            apiGrid.innerHTML = '';
+            
+            apis.forEach(api => {
+                const apiCard = document.createElement('div');
+                apiCard.className = 'api-card';
+                apiCard.dataset.category = api.category;
+                
+                let paramsHTML = '';
+                if (api.params) {
+                    api.params.forEach(param => {
+                        if (param.type === 'hidden') {
+                            paramsHTML += `<input type="hidden" name="${param.name}" value="${param.value}">`;
+                        } else {
+                            paramsHTML += `
+                                <input class="api-input" type="${param.type}" name="${param.name}" 
+                                    placeholder="${param.placeholder}" ${param.required ? 'required' : ''}>
+                            `;
+                        }
+                    });
+                }
+                
+                apiCard.innerHTML = `
+                    <div class="api-header">
+                        <div class="api-name">${api.name}</div>
+                        <div class="api-category">${api.category}</div>
+                    </div>
+                    <div class="api-description">${api.description}</div>
+                    <form class="api-form">
+                        ${paramsHTML}
+                        <button type="submit" class="api-submit">Fetch Data</button>
+                    </form>
+                    <div class="result-container" style="display: none;">
+                        <div class="result-header">
+                            <span>Result</span>
+                            <button class="copy-btn"><i class="fas fa-copy"></i> Copy</button>
+                        </div>
+                        <div class="result-content"></div>
+                    </div>
+                `;
+                
+                apiGrid.appendChild(apiCard);
+                
+                // Add form submission handler
+                const form = apiCard.querySelector('.api-form');
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    fetchApiData(api, this, apiCard);
+                });
+                
+                // Add copy button handler
+                const copyBtn = apiCard.querySelector('.copy-btn');
+                copyBtn.addEventListener('click', function() {
+                    const resultContent = apiCard.querySelector('.result-content').textContent;
+                    navigator.clipboard.writeText(resultContent).then(() => {
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                });
+            });
+        }
+
+        // Load demo APIs if no APIs are found
+        function loadDemoAPIs() {
+            const demoAPIs = [
+                {
+                    name: "YouTube Downloader (Demo)",
+                    category: "downloads",
+                    description: "Download YouTube videos in multiple formats. Created by Mr. Frank.",
+                    url: "https://yt-dl.officialhectormanuel.workers.dev/",
+                    method: "GET",
+                    params: [
+                        { name: "url", type: "text", placeholder: "YouTube URL", required: true }
+                    ]
+                },
+                {
+                    name: "Pinterest Search (Demo)",
+                    category: "search",
+                    description: "Search for images on Pinterest. Created by Mr. Frank.",
+                    url: "https://kaiz-apis.gleeze.com/api/pinterest",
+                    method: "GET",
+                    params: [
+                        { name: "search", type: "text", placeholder: "Search term", required: true },
+                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
+                    ]
+                },
+                {
+                    name: "GPT-3.5 Chat (Demo)",
+                    category: "ai",
+                    description: "Chat with OpenAI's GPT-3.5 model. Created by Mr. Frank.",
+                    url: "https://kaiz-apis.gleeze.com/api/gpt-3.5",
+                    method: "GET",
+                    params: [
+                        { name: "q", type: "text", placeholder: "Your message", required: true },
+                        { name: "apikey", type: "hidden", value: "cf2ca612-296f-45ba-abbc-473f18f991eb" }
+                    ]
+                }
+            ];
+            
+            renderApiCards(demoAPIs);
+        }
+
+        // Fetch data from API
+        async function fetchApiData(apiConfig, form, card) {
+            const resultContainer = card.querySelector('.result-container');
+            const resultContent = card.querySelector('.result-content');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            resultContainer.style.display = 'block';
+            resultContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>Fetching data...</p></div>';
+            
+            try {
+                // Build URL with parameters
+                const formData = new FormData(form);
+                let url = apiConfig.url;
+                
+                // For GET requests, add parameters to URL
+                if (apiConfig.method === 'GET') {
+                    const urlObj = new URL(url);
+                    for (let [key, value] of formData.entries()) {
+                        urlObj.searchParams.append(key, value);
+                    }
+                    url = urlObj.toString();
+                }
+                
+                // Prepare request options
+                const requestOptions = {
+                    method: apiConfig.method,
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                };
+                
+                // For POST requests, add form data to body
+                if (apiConfig.method === 'POST') {
+                    requestOptions.body = formData;
+                }
+                
+                // Make the API request
+                const response = await fetch(url, requestOptions);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Modify the response to set creator to "Mr. Frank"
+                if (data.creator) data.creator = "Mr. Frank";
+                if (data.author) data.author = "Mr. Frank";
+                
+                // Format and display the JSON response
+                resultContent.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                resultContent.textContent = `Error: ${error.message}`;
+                console.error('API request failed:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        }
+
+        // Filter APIs by category
+        function filterByCategory(category) {
+            const apiCards = document.querySelectorAll('.api-card');
+            
+            if (category === 'all') {
+                apiCards.forEach(card => {
+                    card.style.display = 'block';
+                });
+            } else {
+                apiCards.forEach(card => {
+                    if (card.dataset.category === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Set up category filter buttons
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                categoryButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                filterByCategory(this.dataset.category);
+            });
+        });
+
+        // Initialize the page
+        async function init() {
+            try {
+                const apiConfigs = await loadAPIConfigs();
+                renderApiCards(apiConfigs);
+            } catch (error) {
+                console.error("Failed to initialize application:", error);
+                apiGrid.innerHTML = `
+                    <div class="loading">
+                        <p>Error loading APIs. Using demo APIs instead.</p>
+                    </div>
+                `;
+                loadDemoAPIs();
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
